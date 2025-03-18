@@ -1,0 +1,9 @@
+{
+  "watch": ["*.ts", "routes/*.ts", "controllers/*.ts", "models/*.ts"],
+  "ext": ".ts,.js",
+  "ignore": ["node_modules"],
+  "exec": "ts-node ./index.ts",
+  "events": {
+    "restart": "echo \"[Server] App restarted due to changes\""
+  }
+} 

@@ -101,6 +101,7 @@ body {
     margin-bottom: 0.5rem;
 }
 
+
 .sidebar-item.active {
     background-color: var(--secondary-color);
 }

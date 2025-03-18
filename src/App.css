@@ -36,3 +36,188 @@
     transform: rotate(360deg);
   }
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content button {
+  margin: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.close-btn {
+  background: red;
+  color: white;
+}
+
+.btn-add-property {
+  background-color: #007bff; /* Blue background */
+  color: white;
+  font-size: 16px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-add-property:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+/* User icon container for dropdown toggle */
+.user-icon-container {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+/* Style for the user icon */
+.user-icon {
+  font-size: 24px;
+}
+
+/* The dropdown menu */
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 30px; /* Adjust this for positioning */
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  border-radius: 4px;
+  z-index: 1000; /* Ensure it appears above other content */
+}
+
+/* Button inside the dropdown */
+.dropdown-menu button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 15px;
+  font-size: 16px;
+  color: #333;
+  text-align: left;
+  width: 100%;
+}
+
+.dropdown-menu button:hover {
+  background-color: #f0f0f0;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  text-align: center;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+input, textarea {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  padding: 8px 16px;
+  margin: 5px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+button {
+  margin-top: 10px;
+}
+.btn-favorite {
+  min-width: 30px;
+  min-height: 30px;
+  transition: transform 0.2s ease-in-out;
+}
+
+.btn-favorite:active {
+  transform: scale(0.9); /* Optional: Slight click animation */
+}
+
+
+
+
+

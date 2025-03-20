@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import User from "../models/User";
 import Favourite from "../models/Favourite";
 import Property from "../models/Properties";
+import axios from 'axios';
 
 class PropertiesController {
     /**
@@ -51,7 +52,7 @@ class PropertiesController {
 
             // First, let's try to get all properties with status published
             let properties = await Property.find({ status: "published" });
-            console.log('Initial Query Result Count:', properties.length); // Debug log
+            console.log('Initial Query Result Count:', properties.length);
 
             // If we have filters, then apply them
             if (requestData.filters) {
@@ -73,7 +74,13 @@ class PropertiesController {
 
             // Log a sample property to verify structure
             if (properties.length > 0) {
-                console.log('Sample Property:', JSON.stringify(properties[0], null, 2)); // Debug log
+                const sampleProperty = properties[0];
+                console.log('Sample Property:', {
+                    id: sampleProperty._id,
+                    address: sampleProperty.basic_information?.address,
+                    coordinates: sampleProperty.basic_information?.coordinates,
+                    hasCoordinates: !!sampleProperty.basic_information?.coordinates
+                });
             }
             
             return res.status(200).json({ 
@@ -322,6 +329,54 @@ class PropertiesController {
             });
         } catch (error: any) {
             return res.status(500).json({ message: error.message });
+        }
+    }
+
+    static async getNYCLocations(req: Request, res: Response) {
+        try {
+            const { query } = req.query;
+            const searchQuery = query ? `${query}, New York City` : 'New York City';
+            
+            const response = await axios.get(
+                `https://nominatim.openstreetmap.org/search`,
+                {
+                    params: {
+                        q: searchQuery,
+                        format: 'json',
+                        limit: 50,
+                        'accept-language': 'en',
+                        countrycodes: 'us',
+                        bounded: 1,
+                        viewbox: '-74.2591,40.4774,-73.7002,40.9162', // NYC bounding box
+                        polygon_geojson: 1
+                    },
+                    headers: {
+                        'User-Agent': 'Zeme/1.0' // Required by Nominatim's terms of service
+                    }
+                }
+            );
+
+            const locations = response.data.map((location: any) => ({
+                address: location.display_name,
+                coordinates: {
+                    lat: parseFloat(location.lat),
+                    long: parseFloat(location.lon)
+                },
+                type: location.type,
+                importance: location.importance,
+                boundingbox: location.boundingbox
+            }));
+
+            res.json({
+                success: true,
+                data: locations
+            });
+        } catch (error) {
+            console.error('Error fetching NYC locations:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch locations'
+            });
         }
     }
 }

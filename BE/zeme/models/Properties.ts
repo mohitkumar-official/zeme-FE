@@ -12,6 +12,10 @@ interface IProperty extends Document {
         bathrooms: number;
         square_feet?: number;
         date_available: Date;
+        coordinates?: {
+            lat: number;
+            lng: number;
+        };
     };
     economic_information: {
         gross_rent: number;
@@ -72,6 +76,10 @@ const PropertySchema: Schema<IProperty> = new mongoose.Schema(
                     return this.status === 'published';
                 }
             },
+            coordinates: {
+                lat: { type: Number },
+                lng: { type: Number }
+            }
         },
         economic_information: {
             gross_rent: { 

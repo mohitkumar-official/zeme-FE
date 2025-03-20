@@ -1,8 +1,6 @@
 import React from 'react';
 import { FormData } from '../types/property';
 import { X, Eye, Save } from 'lucide-react';
-import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
 
 interface PropertyPreviewModalProps {
   property: FormData;

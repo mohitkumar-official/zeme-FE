@@ -1,6 +1,13 @@
-import React from 'react';
-import { Calendar, HelpCircle } from 'lucide-react'; // Importing icons from lucide-react
+import React, { useEffect, useState } from 'react';
+import { Calendar, HelpCircle, MapPin } from 'lucide-react'; // Importing icons from lucide-react
 import { BEDROOM_OPTIONS, BATHROOM_OPTIONS } from './constants'; // Importing bedroom and bathroom options
+import { toast } from 'react-toastify';  // Changed from react-hot-toast to react-toastify
+
+interface AddressSuggestion {
+  display_name: string;
+  lat: string;
+  lon: string;
+}
 
 // Define the types for the props
 interface BasicInformationProps {
@@ -13,6 +20,10 @@ interface BasicInformationProps {
       bathrooms: string | null;
       sqauare_feet: string | null;
       date_available: string | null;
+      coordinates?: {
+        lat: number;
+        lng: number;
+      };
     };
     listingType: string;
   };
@@ -27,22 +38,115 @@ interface BasicInformationProps {
 }
 
 export function BasicInformation({ formData, setFormData, errors }: BasicInformationProps) {
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Helper function to get safe string value
   const getSafeValue = (value: string | null): string => value || '';
 
+  // Function to fetch address suggestions
+  const fetchAddressSuggestions = async (query: string) => {
+    if (!query.trim()) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
+      );
+      const data = await response.json();
+      console.log('Address suggestions:', data);
+      setAddressSuggestions(data);
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+      toast.error('Failed to fetch address suggestions');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Function to handle input change events for fields
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target; // Destructure name and value from event target
+    const { name, value } = e.target;
 
-    // Update the 'formData' state while preserving previous values
+    // Update form data for all fields including address
     setFormData((prev:BasicInformationProps['formData']) => ({
-      ...prev, // Spread previous form data
+      ...prev,
       basic_information: {
         ...prev.basic_information,
-        [name]: value, // Dynamically update the specific field
+        [name]: value,
       },
     }));
+
+    // Additional handling for address field
+    if (name === 'address') {
+      setShowSuggestions(true);
+      // Debounce the API call
+      const timeoutId = setTimeout(() => {
+        console.log('Fetching suggestions for:', value);
+        fetchAddressSuggestions(value);
+      }, 300);
+
+      // Cleanup timeout on next change
+      return () => clearTimeout(timeoutId);
+    }
   };
+
+  // Function to handle address selection
+  const handleAddressSelect = (suggestion: AddressSuggestion) => {
+    console.log('Selected address suggestion:', suggestion);
+    
+    // Validate coordinates before setting them
+    const lat = parseFloat(suggestion.lat);
+    const lng = parseFloat(suggestion.lon);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      console.error('Invalid coordinates received:', { lat: suggestion.lat, lon: suggestion.lon });
+      toast.error('Invalid coordinates received from the address service');
+      return;
+    }
+
+    // Ensure coordinates are within valid ranges
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      console.error('Coordinates out of valid range:', { lat, lng });
+      toast.error('Invalid coordinate values received');
+      return;
+    }
+
+    setFormData((prev: BasicInformationProps['formData']) => {
+      const newFormData = {
+        ...prev,
+        basic_information: {
+          ...prev.basic_information,
+          address: suggestion.display_name,
+          coordinates: {
+            lat,
+            lng
+          }
+        }
+      };
+      console.log('Updated form data with coordinates:', newFormData.basic_information.coordinates);
+      return newFormData;
+    });
+    
+    setShowSuggestions(false);
+    setAddressSuggestions([]);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowSuggestions(false);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -82,21 +186,54 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
           </div>
         </div>
 
-        {/* Address Field */}
+        {/* Address Field with Geocoding Indicator */}
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            ADDRESS<span className="text-red-500">*</span> {/* Required field */}
+            ADDRESS<span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            name="address" // Name of the field
-            value={getSafeValue(formData.basic_information.address)} // Bind value to formData
-            onChange={handleInputChange} // Update state on change
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2"
-            placeholder="Enter an address"
-            required // Make this field required
-          />
-          {/* Display error if exists */}
+          <div className="relative">
+            <input
+              type="text"
+              name="address"
+              value={getSafeValue(formData.basic_information.address)}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 pl-10"
+              placeholder="Enter an address"
+              required
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSuggestions(true);
+              }}
+            />
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            {formData.basic_information.coordinates && (
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 text-sm">
+                ✓ Location found
+              </span>
+            )}
+            
+            {/* Address Suggestions Dropdown */}
+            {showSuggestions && (addressSuggestions.length > 0 || isLoading) && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                {isLoading ? (
+                  <div className="p-4 text-center text-gray-500">Loading...</div>
+                ) : (
+                  addressSuggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddressSelect(suggestion);
+                      }}
+                    >
+                      {suggestion.display_name}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
           {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
         </div>
 

@@ -10,6 +10,10 @@ export interface FormData {
     bathrooms: string;
     sqauare_feet: string;
     date_available: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
   };
   economic_information: {
     gross_rent: string;

@@ -7,7 +7,7 @@ import { ImageUpload } from './forms/steps/UploadImages';
 import { toast } from 'react-toastify';
 import { FormData } from '../types/property';
 import { ChevronLeft, ChevronRight, Save, X } from 'lucide-react'; // Imported X for the close icon
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import PropertyPreviewModal from './PropertyPreviewModal';
 
 interface MultiStepPropertyFormProps {
@@ -19,7 +19,7 @@ interface MultiStepPropertyFormProps {
 export const MultiStepForm: React.FC<MultiStepPropertyFormProps> = ({ onClose, editMode = false, propertyData }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>(() => ({
     listingType: 'exclusive',
     status: 'draft',
@@ -31,6 +31,10 @@ export const MultiStepForm: React.FC<MultiStepPropertyFormProps> = ({ onClose, e
       bathrooms: '',
       sqauare_feet: '',
       date_available: '',
+      coordinates: {
+        lat: 0,
+        lng: 0  // Using 'lng' instead of 'long'
+      }
     },
     economic_information: {
       gross_rent: '',

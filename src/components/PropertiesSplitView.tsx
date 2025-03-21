@@ -1,212 +1,295 @@
-// Import necessary dependencies and components for React and state management
-import React, { useEffect, useState, useMemo } from 'react';
-// Import Leaflet map components for interactive mapping functionality
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-// Import Leaflet CSS for map styling
-import 'leaflet/dist/leaflet.css';
-// Import custom map styles
-import '../styles/map.css';
-// Import Leaflet core library for map functionality
-import L from 'leaflet';
-// Import Redux hooks for state management
+// Import React core functionality and hooks for component management
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+// Import Redux hooks for state management and dispatch actions
 import { useSelector, useDispatch } from 'react-redux';
-// Import Redux actions for property management
+// Import Redux actions for managing favorites
 import { addToFavorites, setFavoriteIds } from '../features/properties/PropertiesSlice';
-// Import TypeScript types for Redux store and dispatch
+// Import Redux store types
 import { AppDispatch, RootState } from '../redux/store';
+// Import Mapbox GL JS library for map functionality
+import mapboxgl from 'mapbox-gl';
+// Import Mapbox CSS styles
+import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Fix Leaflet's default icon issue in React by manually setting icon paths
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  // Set high-resolution icon for retina displays
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  // Set standard resolution icon
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  // Set shadow image for markers
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
-});
+// Set the Mapbox access token from environment variables or empty string as fallback
+mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN || '';
 
-// Define TypeScript interface for property data structure
-interface Property {
-  // Unique identifier for each property
-  _id: string;
-  // Optional array of property images
-  images?: { image_url: string }[];
-  // Optional basic property information
-  basic_information?: {
-    address: string;
-    unit?: string;
-    floor?: string;
-    square_feet?: number;
-    bedrooms?: number;
-    bathrooms?: number;
-    // Geographic coordinates for map placement
-    coordinates?: {
-      lat: number;
-      lng: number;
-    };
-  };
-  // Optional economic information
-  economic_information?: {
-    gross_rent: number;
-    has_another_fee: boolean;
-  };
-}
-
-// Component to handle map center updates when location changes
-const MapCenterUpdater: React.FC<{ center: [number, number] }> = ({ center }) => {
-  // Get reference to map instance
-  const map = useMap();
-  
-  // Update map view when center coordinates change
-  useEffect(() => {
-    // Set new map view with animation
-    map.setView(center, 13, { animate: true });
-  }, [center, map]);
-  
-  // Component doesn't render anything visible
-  return null;
-};
-
-// Component to adjust map bounds to show all markers
-const FitBoundsToMarkers: React.FC<{ bounds: L.LatLngBounds | undefined }> = ({ bounds }) => {
-  // Get reference to map instance
-  const map = useMap();
-  
-  // Adjust map view to fit all markers when bounds change
-  useEffect(() => {
-    // Only adjust if bounds exist and are valid
-    if (bounds && bounds.isValid()) {
-      // Fit map to bounds with padding and animation
-      map.fitBounds(bounds, { 
-        padding: [50, 50], // Add padding around markers
-        animate: true,     // Enable smooth animation
-        maxZoom: 15       // Limit maximum zoom level
-      });
-    }
-  }, [map, bounds]);
-  
-  // Component doesn't render anything visible
-  return null;
-};
-
-// Main component for the split view (list and map)
+// Define the main PropertiesSplitView component as a functional component
 const PropertiesSplitView: React.FC = () => {
-  // Get properties and favorite IDs from Redux store
+  // Extract properties and favorite IDs from Redux store state
   const { properties, favoriteIds } = useSelector((state: RootState) => state.properties);
-  // Get dispatch function for Redux actions
+  // Get dispatch function from Redux for dispatching actions
   const dispatch = useDispatch<AppDispatch>();
   
-  // Local state management
-  // Track currently selected property
+  // State for tracking selected property ID
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
-  // Set initial map center (Delhi coordinates)
-  const [mapCenter, setMapCenter] = useState<[number, number]>([28.6139, 77.2090]);
-  // Track map loading state
+  // State for tracking if map has finished loading
   const [mapLoaded, setMapLoaded] = useState(false);
-  // Get authentication token from local storage
+  // Get authentication token from localStorage
   const token = localStorage.getItem('token');
 
-  // Create custom map markers based on property price
-  const createCustomIcon = (property: any, isSelected: boolean) => {
-    // Get property price or default to 0
-    const price = property.economic_information?.gross_rent || 0;
-    // Determine price range category
-    const priceRange = price < 1000 ? 'low' : price < 2000 ? 'medium' : 'high';
-    
-    // Define color scheme for different price ranges
-    const colors = {
-      low: '#10B981',    // Green for low prices
-      medium: '#F59E0B', // Amber for medium prices
-      high: '#EF4444',   // Red for high prices
-    };
-    
-    // Get color based on price range
-    const color = colors[priceRange as keyof typeof colors];
-    // Adjust size based on selection state
-    const size = isSelected ? 36 : 30;
-    
-    // Format price for display (K for thousands)
-    const displayPrice = price >= 1000 
-      ? `$${Math.floor(price/1000)}K` 
-      : `$${price}`;
-    
-    // Create and return custom div icon
-    return L.divIcon({
-      // Set CSS classes for styling
-      className: `custom-marker-icon ${isSelected ? 'selected-marker' : ''}`,
-      // Create HTML structure for marker
-      html: `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-center; border-radius: 50%; color: white; font-weight: bold; border: 2px solid white;">${displayPrice}</div>`,
-      // Set icon dimensions
-      iconSize: [size, size],
-      // Set icon anchor point
-      iconAnchor: [size / 2, size / 2],
-    });
-  };
+  // Ref for the map container DOM element
+  const mapContainer = useRef<HTMLDivElement>(null);
+  // Ref for the Mapbox map instance
+  const map = useRef<mapboxgl.Map | null>(null);
+  // Ref for storing map markers
+  const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
-  // Update map center when properties list changes
+  // Effect hook for initializing the map
   useEffect(() => {
-    // Check if properties exist
-    if (properties.length > 0) {
-      const firstProperty = properties[0];
-      // Update map center if coordinates exist
-      if (firstProperty.basic_information?.coordinates) {
-        setMapCenter([
-          firstProperty.basic_information.coordinates.lat,
-          firstProperty.basic_information.coordinates.lng
-        ]);
+    // Check if Mapbox token is available
+    if (!mapboxgl.accessToken) {
+      console.error('Mapbox token is not set');
+      return;
+    }
+
+    // Initialize map if not already created and container exists
+    if (!map.current && mapContainer.current) {
+      // Create new Mapbox map instance with configuration
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current, //right portion of the screen
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [78.9629, 20.5937], // Center of India
+        zoom: 4,
+        minZoom: 3.5,
+        maxZoom: 16,
+        maxBounds: [ //maxBounds restricts the area the user can move around in the map.
+          [68.1766, 6.7433],
+          [97.4025, 35.6745]
+        ],
+        maxPitch: 0,
+        dragRotate: false,
+        bearing: 0
+      });
+
+      // Add navigation controls to the map
+      map.current.addControl( //like + and -
+        new mapboxgl.NavigationControl({ 
+          showCompass: false,
+          showZoom: true
+        }), 
+        'top-right'
+      );
+
+      // Set up map load event handler
+      map.current.on('load', () => {
+        setMapLoaded(true);
+        // Fit bounds to show all markers if no property is selected
+        if (!selectedProperty && Object.keys(markers.current).length === 0) {
+          map.current?.fitBounds([
+            [68.1766, 6.7433],
+            [97.4025, 35.6745]
+          ], {
+            padding: 50,
+            duration: 0
+          });
+        }
+      });
+    }
+
+    // Cleanup function to remove map when component unmounts
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, []); // Empty dependency array means this effect runs only on mount
+
+  // Memoized function to create map markers
+  const createMarkers = useCallback((map: mapboxgl.Map) => {
+    // Create bounds object for fitting map view
+    const bounds = new mapboxgl.LngLatBounds();
+    // Object to store new markers
+    const newMarkers: { [key: string]: mapboxgl.Marker } = {};
+
+    // Iterate through properties to create markers
+    properties.forEach(property => {
+      // Check if property has coordinates
+      if (property.basic_information?.coordinates) {
+        const { lat, lng } = property.basic_information.coordinates;
+        
+        // Create marker element
+        const el = document.createElement('div');
+        el.className = 'cursor-pointer transition-transform duration-200 hover:scale-110';
+        
+        // Calculate price range and color
+        const price = property.economic_information?.gross_rent || 0;
+        const priceRange = price < 1000 ? 'low' : price < 2000 ? 'medium' : 'high';
+        const colors = {
+          low: '#10B981',
+          medium: '#F59E0B',
+          high: '#EF4444',
+        };
+        const color = colors[priceRange as keyof typeof colors];
+        const isSelected = property._id === selectedProperty;
+        const size = isSelected ? '36px' : '30px';
+        
+        // Style the marker element
+        el.style.cssText = `
+          width: ${size};
+          height: ${size};
+          background-color: ${color};
+          border-radius: 50%;
+          border: 2px solid white;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 12px;
+        `;
+        
+        // Format price for display
+        const displayPrice = price >= 1000 ? `$${Math.floor(price/1000)}K` : `$${price}`;
+        el.textContent = displayPrice;
+
+        // Create popup content
+        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+          <div class="font-sans">
+            ${property.images?.[0]?.image_url ? 
+              `<img class="w-full h-[150px] object-cover" src="http://localhost:8000${property.images[0].image_url}" alt="${property.basic_information?.address || 'Property'}" />` 
+              : ''
+            }
+            <div class="p-4">
+              <div class="text-lg font-bold text-gray-900 mb-1">$${(property.economic_information?.gross_rent || 0).toLocaleString()}/mo</div>
+              <div class="text-sm text-gray-600 mb-2">${property.basic_information?.address || ''}</div>
+              <div class="flex gap-3 text-sm text-gray-500 mb-3">
+                <span>${property.basic_information?.bedrooms || 'N/A'} beds</span>
+                <span>${property.basic_information?.bathrooms || 'N/A'} baths</span>
+                <span>${(property.basic_information?.square_feet || 0).toLocaleString()} sq ft</span>
+              </div>
+              <button 
+                class="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded transition-colors"
+                onclick="document.getElementById('property-${property._id}').scrollIntoView({behavior: 'smooth', block: 'center'})"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        `);
+
+        // Create and add marker to map
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([lng, lat])
+          .setPopup(popup)
+          .addTo(map);
+
+        // Add click event listener to marker
+        el.addEventListener('click', () => {
+          handlePropertySelect(property._id);
+        });
+
+        // Store marker reference
+        newMarkers[property._id] = marker;
+        // Extend bounds to include marker
+        bounds.extend([lng, lat]);
+      }
+    });
+
+    // Return markers and bounds
+    return { markers: newMarkers, bounds };
+  }, [properties]); // Remove selectedProperty from dependencies
+
+  // Effect hook to update markers when properties or selection changes
+  useEffect(() => {
+    // Return early if map is not ready
+    if (!map.current || !mapLoaded) return;
+
+    // Remove existing markers
+    Object.values(markers.current).forEach(marker => marker.remove());
+
+    // Create new markers
+    const { markers: newMarkers, bounds } = createMarkers(map.current);
+    markers.current = newMarkers;
+
+    // Fit bounds if multiple properties exist
+    if (Object.keys(newMarkers).length > 1) {
+      map.current.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 15
+      });
+    }
+
+    // Handle selected property changes
+    if (selectedProperty) {
+      const selected = properties.find(p => p._id === selectedProperty);
+      if (selected?.basic_information?.coordinates) {
+        map.current.flyTo({
+          center: [
+            selected.basic_information.coordinates.lng,
+            selected.basic_information.coordinates.lat
+          ],
+          zoom: 15,
+          essential: true
+        });
       }
     }
-  }, [properties]);
+  }, [properties, selectedProperty, mapLoaded, createMarkers]);
 
-  // Handle adding/removing properties to favorites
-  const handleFavoriteClick = (event: React.MouseEvent, propertyId: string) => {
+  // Separate effect for updating marker styles when selection changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Update marker styles for selected property
+    Object.entries(markers.current).forEach(([propertyId, marker]) => {
+      const property = properties.find(p => p._id === propertyId);
+      if (property?.basic_information?.coordinates) {
+        const price = property.economic_information?.gross_rent || 0;
+        const priceRange = price < 1000 ? 'low' : price < 2000 ? 'medium' : 'high';
+        const colors = {
+          low: '#10B981',
+          medium: '#F59E0B',
+          high: '#EF4444',
+        };
+        const color = colors[priceRange as keyof typeof colors];
+        const isSelected = propertyId === selectedProperty;
+        const size = isSelected ? '36px' : '30px';
+
+        const el = marker.getElement();
+        el.style.width = size;
+        el.style.height = size;
+        el.style.backgroundColor = color;
+      }
+    });
+  }, [selectedProperty, properties, mapLoaded]);
+
+  // Memoized handler for favorite button clicks
+  const handleFavoriteClick = useCallback((event: React.MouseEvent, propertyId: string) => {
     // Prevent event bubbling
     event.preventDefault();
     event.stopPropagation();
 
-    if (token) {
-      // If user is logged in, update favorites in backend
-      dispatch(addToFavorites(propertyId))
-        .unwrap()
-        .then(() => {
-          // Update favorite IDs in Redux store
-          dispatch(
-            setFavoriteIds(
-              favoriteIds.includes(propertyId)
-                ? favoriteIds.filter((id) => id !== propertyId) // Remove if exists
-                : [...favoriteIds, propertyId]                  // Add if doesn't exist
-            )
-          );
-        })
-        .catch((err:Error) => {
-          console.error('Error adding to favorites:', err);
-        });
-    } else {
-      // If user is not logged in, store favorites in localStorage
-      const updatedIds = favoriteIds.includes(propertyId)
-        ? favoriteIds.filter((id) => id !== propertyId) // Remove if exists
-        : [...favoriteIds, propertyId];                 // Add if doesn't exist
+    // Function to update favorites
+    const updateFavorites = (updatedIds: string[]) => {
+      if (token) {
+        // If user is logged in, update favorites through API
+        dispatch(addToFavorites(propertyId))
+          .unwrap()
+          .then(() => {
+            dispatch(setFavoriteIds(updatedIds));
+          })
+          .catch((err:Error) => {
+            console.error('Error adding to favorites:', err);
+          });
+      } else {
+        // If user is not logged in, update localStorage
+        localStorage.setItem('favouriteIds', updatedIds.join(','));
+        dispatch(setFavoriteIds(updatedIds));
+      }
+    };
 
-      // Save to localStorage and update Redux store
-      localStorage.setItem('favouriteIds', updatedIds.join(','));
-      dispatch(setFavoriteIds(updatedIds));
-    }
-  };
+    // Update favorite IDs
+    const updatedIds = favoriteIds.includes(propertyId)
+      ? favoriteIds.filter((id) => id !== propertyId)
+      : [...favoriteIds, propertyId];
 
-  // Handle property selection and map centering
+    updateFavorites(updatedIds);
+  }, [token, favoriteIds, dispatch]);
+
+  // Handler for property selection
   const handlePropertySelect = (propertyId: string) => {
-    // Update selected property state
     setSelectedProperty(propertyId);
-    // Find selected property
-    const property = properties.find(p => p._id === propertyId);
-    // Update map center if coordinates exist
-    if (property?.basic_information?.coordinates) {
-      setMapCenter([
-        property.basic_information.coordinates.lat,
-        property.basic_information.coordinates.lng
-      ]);
-    }
     // Scroll selected property into view
     const element = document.getElementById(`property-${propertyId}`);
     if (element) {
@@ -214,83 +297,57 @@ const PropertiesSplitView: React.FC = () => {
     }
   };
 
-  // Filter properties that have valid coordinates for mapping
-  const propertiesWithCoordinates = useMemo(() => {
-    return properties.filter(p => 
-      p.basic_information?.coordinates?.lat && 
-      p.basic_information.coordinates.lng
-    );
-  }, [properties]);
-
-  // Calculate bounds to fit all property markers
-  const mapBounds = useMemo(() => {  //In React, useMemo is a hook that memoizes (or "remembers") the result of a computation and reuses it when the same inputs occur again. This is useful for optimizing performance by avoiding unnecessary re-renders or computations.
-    // Return undefined if no properties with coordinates
-    if (propertiesWithCoordinates.length === 0) return undefined;
-    
-    // Create bounds object from property coordinates
-    const bounds = L.latLngBounds(
-      propertiesWithCoordinates.map(p => [
-        p.basic_information!.coordinates!.lat,
-        p.basic_information!.coordinates!.lng
-      ] as [number, number])
-    );
-    
-    return bounds;
-  }, [propertiesWithCoordinates]);
-
-  // Render component
+  // Render the component
   return (
     <div className="flex h-screen">
       {/* Left side - Properties List */}
       <div className="w-1/2 overflow-y-auto p-4 bg-white">
         {/* Header section */}
-        <div className="listings-header">
-          <h2>Property Listings</h2>
-          <span className="listings-count">You've got {properties.length} property choices</span>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Property Listings</h2>
+          <span className="text-sm text-gray-600">You've got {properties.length} property choices</span>
         </div>
 
         {/* Property cards grid */}
-        <div className="property-grid">
-          {/* Map through properties and render cards */}
+        <div className="grid grid-cols-2 gap-4 pb-4">
           {properties.map((property) => (
             <div 
-              className={`property-card ${selectedProperty === property._id ? 'selected' : ''}`} 
               key={property._id} 
               id={`property-${property._id}`}
+              className={`bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer
+                ${selectedProperty === property._id ? 'ring-2 ring-blue-500 ring-offset-2' : 'border border-gray-200'}`}
               onClick={() => handlePropertySelect(property._id)}
             >
               {/* Property image and favorite button */}
-              <div className="property-image relative">
+              <div className="relative h-36">
                 <img
                   src={property.images?.[0]?.image_url ? `http://localhost:8000${property.images[0].image_url}` : 'default-image.jpg'}
                   alt={property.basic_information?.address || 'Property Image'}
+                  className="w-full h-full object-cover"
                 />
-                {/* Favorite toggle button */}
                 <button
-                  className="btn-favorite"
                   onClick={(event) => handleFavoriteClick(event, property._id)}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white shadow-md flex items-center justify-center transition-transform hover:scale-110"
                 >
                   {favoriteIds.includes(property._id) ? '❤️' : '🤍'}
                 </button>
-                {/* Fee status tag */}
-                <span className="tag-no-fee">
+                <span className="absolute bottom-2 left-2 px-2 py-1 text-xs font-medium text-white bg-black/70 rounded">
                   {property.economic_information?.has_another_fee ? "No fee" : "Fee applies"}
                 </span>
               </div>
+
               {/* Property information section */}
-              <div className="property-info">
-                {/* Price display */}
-                <div className="price">${property.economic_information?.gross_rent || 'N/A'}/mo</div>
-                {/* Address */}
-                <h3>{property.basic_information?.address || 'Unknown Address'}</h3>
-                {/* Unit and floor information */}
-                <p>
+              <div className="p-3">
+                <div className="text-lg font-bold text-gray-900 mb-1">
+                  ${property.economic_information?.gross_rent || 'N/A'}/mo
+                </div>
+                <h3 className="text-sm text-gray-700 mb-1">{property.basic_information?.address || 'Unknown Address'}</h3>
+                <p className="text-xs text-gray-600 mb-2">
                   {property.basic_information?.unit ? `Unit ${property.basic_information.unit}, ` : ''}
                   {property.basic_information?.floor ? `Floor ${property.basic_information.floor}, ` : ''}
                   {property.basic_information?.square_feet || 'N/A'} sq ft
                 </p>
-                {/* Property details */}
-                <div className="property-details">
+                <div className="flex gap-3 text-xs text-gray-600">
                   <span>{property.basic_information?.bedrooms || 'N/A'} bedrooms</span>
                   <span>{property.basic_information?.bathrooms || 'N/A'} bathrooms</span>
                 </div>
@@ -301,118 +358,22 @@ const PropertiesSplitView: React.FC = () => {
       </div>
 
       {/* Right side - Map */}
-      <div className="w-1/2 h-full relative">
-        {/* Loading spinner overlay */}
+      <div className="w-1/2 relative">
+        {/* Loading spinner */}
         {!mapLoaded && (
-          <div className="map-loading">
-            <div className="loading-spinner"></div>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
         )}
-
-        {/* Map container component */}
-        <MapContainer
-          center={mapCenter}
-          zoom={13}
-          style={{ height: '100%', width: '100%' }}
-          whenReady={() => setMapLoaded(true)}
-          zoomControl={false}
-        >
-          {/* Map center updater component */}
-          <MapCenterUpdater center={mapCenter} />
-          
-          {/* Fit bounds component - only when multiple properties */}
-          {mapBounds && propertiesWithCoordinates.length > 1 && (
-            <FitBoundsToMarkers bounds={mapBounds} />
-          )}
-          
-          {/* Map tile layer - provides the actual map imagery */}
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            maxZoom={19}
-          />
-          
-          {/* Property markers on map */}
-          {propertiesWithCoordinates.map((property) => (
-            <Marker
-              key={property._id}
-              position={[
-                property.basic_information!.coordinates!.lat,
-                property.basic_information!.coordinates!.lng
-              ]}
-              icon={createCustomIcon(property, selectedProperty === property._id)}
-              eventHandlers={{
-                click: () => handlePropertySelect(property._id),
-              }}
-            >
-              {/* Popup for each marker */}
-              <Popup className="custom-popup">
-                <div>
-                  {/* Property image in popup */}
-                  {property.images?.[0]?.image_url && (
-                    <img 
-                      className="popup-image"
-                      src={`http://localhost:8000${property.images[0].image_url}`}
-                      alt={property.basic_information?.address || 'Property'} 
-                    />
-                  )}
-                  {/* Popup content */}
-                  <div className="popup-content">
-                    {/* Price display */}
-                    <div className="popup-price">
-                      ${(property.economic_information?.gross_rent || 0).toLocaleString()}/mo
-                    </div>
-                    {/* Address */}
-                    <div className="popup-address">
-                      {property.basic_information?.address}
-                    </div>
-                    {/* Property details */}
-                    <div className="popup-details">
-                      <span>{property.basic_information?.bedrooms || 'N/A'} beds</span>
-                      <span>{property.basic_information?.bathrooms || 'N/A'} baths</span>
-                      <span>{(property.basic_information?.square_feet || 0).toLocaleString()} sq ft</span>
-                    </div>
-                    {/* View details button */}
-                    <button 
-                      className="popup-button"
-                      onClick={() => handlePropertySelect(property._id)}
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-          
-          {/* Map controls */}
-          <div className="map-controls">
-            {/* Fit to bounds button */}
-            <button className="map-control-button" onClick={() => {
-              // Get map instance
-              const mapElement = document.querySelector('.leaflet-container') as HTMLElement;
-              const map = mapElement ? (mapElement as any)._leaflet_map : null;
-              // Fit to bounds if map and bounds exist
-              if (map && mapBounds) {
-                map.fitBounds(mapBounds, { padding: [50, 50] });
-              }
-            }}>
-              {/* Button icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="8" y1="3" x2="8" y2="21"></line>
-                <line x1="16" y1="3" x2="16" y2="21"></line>
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="16" x2="21" y2="16"></line>
-                <line x1="3" y1="8" x2="21" y2="8"></line>
-              </svg>
-            </button>
-          </div>
-        </MapContainer>
+        {/* Map container */}
+        <div 
+          ref={mapContainer} 
+          className="w-full h-full min-h-screen"
+        />
       </div>
     </div>
   );
 };
 
-// Export component
+// Export the component
 export default PropertiesSplitView;

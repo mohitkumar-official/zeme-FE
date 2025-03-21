@@ -4,9 +4,13 @@ import { BEDROOM_OPTIONS, BATHROOM_OPTIONS } from './constants'; // Importing be
 import { toast } from 'react-toastify';  // Changed from react-hot-toast to react-toastify
 
 interface AddressSuggestion {
-  display_name: string;
-  lat: string;
-  lon: string;
+  place_name: string;
+  center: [number, number];
+  text: string;
+  context?: Array<{
+    text: string;
+    id: string;
+  }>;
 }
 
 // Define the types for the props
@@ -45,7 +49,7 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
   // Helper function to get safe string value
   const getSafeValue = (value: string | null): string => value || '';
 
-  // Function to fetch address suggestions
+  // Function to fetch address suggestions using Mapbox
   const fetchAddressSuggestions = async (query: string) => {
     if (!query.trim()) {
       setAddressSuggestions([]);
@@ -55,11 +59,12 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${process.env.REACT_APP_MAPBOX_TOKEN}&country=in&types=address,place,locality,neighborhood&limit=5`
       );
       const data = await response.json();
-      console.log('Address suggestions:', data);
-      setAddressSuggestions(data);
+      if (data.features) {
+        setAddressSuggestions(data.features);
+      }
     } catch (error) {
       console.error('Error fetching address suggestions:', error);
       toast.error('Failed to fetch address suggestions');
@@ -97,19 +102,14 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
 
   // Function to handle address selection
   const handleAddressSelect = (suggestion: AddressSuggestion) => {
-    console.log('Selected address suggestion:', suggestion);
-    
-    // Validate coordinates before setting them
-    const lat = parseFloat(suggestion.lat);
-    const lng = parseFloat(suggestion.lon);
+    const [lng, lat] = suggestion.center;
     
     if (isNaN(lat) || isNaN(lng)) {
-      console.error('Invalid coordinates received:', { lat: suggestion.lat, lon: suggestion.lon });
-      toast.error('Invalid coordinates received from the address service');
+      console.error('Invalid coordinates received:', { lat, lng });
+      toast.error('Invalid coordinates received from Mapbox');
       return;
     }
 
-    // Ensure coordinates are within valid ranges
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       console.error('Coordinates out of valid range:', { lat, lng });
       toast.error('Invalid coordinate values received');
@@ -121,7 +121,7 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
         ...prev,
         basic_information: {
           ...prev.basic_information,
-          address: suggestion.display_name,
+          address: suggestion.place_name,
           coordinates: {
             lat,
             lng
@@ -206,11 +206,6 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
               }}
             />
             <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            {formData.basic_information.coordinates && (
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 text-sm">
-                ✓ Location found
-              </span>
-            )}
             
             {/* Address Suggestions Dropdown */}
             {showSuggestions && (addressSuggestions.length > 0 || isLoading) && (
@@ -227,7 +222,7 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
                         handleAddressSelect(suggestion);
                       }}
                     >
-                      {suggestion.display_name}
+                      {suggestion.place_name}
                     </div>
                   ))
                 )}

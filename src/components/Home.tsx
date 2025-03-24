@@ -12,6 +12,7 @@ import MultiStepPropertyForm from "./MultiStepForm";
 import { FilterModal } from "./FilterModal";
 import { fetchProperties, setFilterss } from "../features/properties/PropertiesSlice";
 import { AppDispatch } from "../redux/store";
+import { Map, List } from 'lucide-react';
 
 interface User {
   role: string;
@@ -40,6 +41,7 @@ const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState("");
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -157,6 +159,30 @@ const Home: React.FC = () => {
             />
           </div>
           <div className="search-controls flex items-center gap-4">
+            <div className="flex rounded-lg border border-gray-200 p-1 bg-white">
+              <button
+                onClick={() => setViewMode('map')}
+                className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+                  viewMode === 'map'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Map className="w-5 h-5 mr-2" />
+                Map
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <List className="w-5 h-5 mr-2" />
+                List
+              </button>
+            </div>
             <button 
               className="px-4 py-2 text-sm text-white border-2 border-blue-600 rounded-full" 
               onClick={() => setIsFilterModalOpen(true)}
@@ -178,7 +204,7 @@ const Home: React.FC = () => {
 
         <PropertiesState>
           <Routes>
-            <Route path="/" element={<PropertiesListing />} />
+            <Route path="/" element={<PropertiesListing viewMode={viewMode} />} />
             <Route path="/fetch-favourites" element={<SavedPropertiesListing />} />
             <Route path="/my-properties" element={<MyProperties />} />
             <Route path="/drafts" element={<DraftProperties />} />

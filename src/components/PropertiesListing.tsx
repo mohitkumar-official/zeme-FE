@@ -27,12 +27,14 @@ interface RootState {
     loading: boolean;
     error: string | null;
     favoriteIds: string[];
+    initialLoadDone: boolean;
   };
 }
 
 const PropertiesListing: React.FC = () => {
-  const { properties, loading, error, favoriteIds } = useSelector(
+  const { properties, loading, error,  initialLoadDone } = useSelector(
     (state: RootState) => state.properties
+    
   );
   
   const dispatch = useDispatch<AppDispatch>();
@@ -65,35 +67,7 @@ const PropertiesListing: React.FC = () => {
     }
   }, [token]);
 
-  const handleFavoriteClick = (event: React.MouseEvent, propertyId: string) => {
-    event.preventDefault();
-
-    if (token) {
-      dispatch(addToFavorites(propertyId))
-        .unwrap()
-        .then(() => {
-          dispatch(
-            setFavoriteIds(
-              favoriteIds.includes(propertyId)
-                ? favoriteIds.filter((id) => id !== propertyId)
-                : [...favoriteIds, propertyId]
-            )
-          );
-        })
-        .catch((err:Error) => {
-          console.error('Error adding to favorites:', err);
-        });
-    } else {
-      const updatedIds = favoriteIds.includes(propertyId)
-        ? favoriteIds.filter((id) => id !== propertyId)
-        : [...favoriteIds, propertyId];
-
-      localStorage.setItem('favouriteIds', updatedIds.join(','));
-      dispatch(setFavoriteIds(updatedIds));
-    }
-  };
-
-  if (loading) {
+  if (!initialLoadDone) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -121,6 +95,12 @@ const PropertiesListing: React.FC = () => {
         </div>
       </div>
     );
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+
   }
 
   return <PropertiesSplitView />;

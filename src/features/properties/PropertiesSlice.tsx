@@ -18,6 +18,7 @@ interface PropertiesState {
     error: string | null;
     filters: FilterRequestBody;
     favoriteIds: string[];
+    initialLoadDone: boolean;
 }
 
 // Initial state
@@ -28,6 +29,7 @@ const initialState: PropertiesState = {
     // filters: { filters: {} }, // Initialize filters correctly
     filters: { filters: { keyword: "", sort: "" }}, // ✅ Ensure filters is always an object
     favoriteIds: [],
+    initialLoadDone: false // Add this flag
 };
 
 // 🔹 Async Thunks for API Calls
@@ -126,13 +128,15 @@ const propertiesSlice = createSlice({
             .addCase(fetchProperties.fulfilled, (state, action) => {
                 state.loading = false;
                 state.properties = action.payload;
+                state.initialLoadDone = true;
             })
             .addCase(fetchProperties.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
+                state.initialLoadDone = true;
             })
             .addCase(fetchFavourites.pending, (state) => {
-                state.loading = true;
+                state.loading = false;
             })
             .addCase(fetchFavourites.fulfilled, (state) => {
                 state.loading = false;
@@ -142,7 +146,7 @@ const propertiesSlice = createSlice({
                 state.error = action.payload as string;
             })
             .addCase(addToFavorites.pending, (state) => {
-                state.loading = true;
+                state.loading = false;
             })
             .addCase(addToFavorites.fulfilled, (state) => {
                 state.loading = false;

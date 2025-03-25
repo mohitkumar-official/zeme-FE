@@ -1,18 +1,14 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import SideBar from "./SideBar";
-import PropertiesListing from "./PropertiesListing";
-import PropertiesState from "../context/properties/PropertiesState";
-import SavedPropertiesListing from "./SavedPropertiesListing";
 import RoleSelectionModal from "./RoleSelectionModal";
-import MyProperties from "./MyProperties";
-import DraftProperties from "./DraftProperties";
 import MultiStepPropertyForm from "./MultiStepForm";
 import { FilterModal } from "./FilterModal";
 import { fetchProperties, setFilterss } from "../features/properties/PropertiesSlice";
 import { AppDispatch } from "../redux/store";
-import { Map, List } from 'lucide-react';
+import Navbar from "./Navbar";
+import SearchControls from "./SearchControls";
+import MainContent from "./MainContent";
 
 interface User {
   role: string;
@@ -27,23 +23,16 @@ interface FilterRequestBody {
 }
 
 const Home: React.FC = () => {
-  const token = localStorage.getItem("token");
   const user: User | null = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null;
-  const userRole = user?.role ?? null;
-  const userImage = user?.profileImage ?? "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png";
-  const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
 
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMultiStepFormOpen, setMultiStepFormOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState("");
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
-
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -84,133 +73,53 @@ const Home: React.FC = () => {
     window.location.reload();
   };
 
-  const toggleDropdown = () => setIsDropdownOpen((prev) => !prev);
-
 
   return (
-    <div className="app-container min-h-screen">
-      <nav className="navbar flex justify-between items-center p-4 shadow-md bg-white">
-        <div className="nav-left flex items-center">
-          <div className="logo flex items-center">
-            <img
-              src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=50&h=50&q=80"
-              alt="Logo"
-              className="w-10 h-10 rounded-lg"
-            />
-            <span className="ml-2 font-bold text-lg">zeme</span>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar 
+        user={user}
+        onLogout={handleLogout}
+        onAddProperty={() => setMultiStepFormOpen(true)}
+      />
 
-        <div className="nav-right flex items-center gap-4">
-          {token ? (
-            <>
-              {(userRole === "agent" || userRole === "landlord") && (
-                <button
-                  className="btn btn-add-property px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  onClick={() => setMultiStepFormOpen(true)}
-                >
-                  Add New Property
-                </button>
-              )}
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="fixed top-16 left-0 w-64 h-[calc(100vh-64px)] bg-white shadow-lg z-10">
+          <SideBar />
+        </aside>
 
-              <div className="relative" ref={dropdownRef}>
-                <img
-                  src={userImage}
-                  alt="User"
-                  className="w-10 h-10 rounded-full border-2 border-gray-300 cursor-pointer"
-                  onClick={toggleDropdown}
-                />
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md border border-gray-200">
-                    <button
-                      className="block w-full text-left px-4 py-2 text-gray-700 bg-white"
-                      onClick={handleLogout}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <button onClick={() => navigate("/login")} className="btn btn-login px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">
-                Log In
-              </button>
-              <button className="btn btn-register px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onClick={() => setRoleModalOpen(true)}>
-                Register
-              </button>
-            </>
-          )}
-        </div>
-      </nav>
-
-      <SideBar />
-      <main className="main-content p-5 bg-gray-100">
-        <div className="search-bar flex justify-between items-center mb-6">
-          <div className="relative w-full max-w-sm">
-            <input
-              type="text"
-              className="w-full pl-10 pr-4 py-2 text-sm border rounded-full"
-              placeholder="Search by address, neighborhood, state, zip"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch(searchQuery)}
-            />
-          </div>
-          <div className="search-controls flex items-center gap-4">
-            <div className="flex rounded-lg border border-gray-200 p-1 bg-white">
-              <button
-                onClick={() => setViewMode('map')}
-                className={`flex items-center px-3 py-2 rounded-md transition-colors ${
-                  viewMode === 'map'
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <Map className="w-5 h-5 mr-2" />
-                Map
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`flex items-center px-3 py-2 rounded-md transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <List className="w-5 h-5 mr-2" />
-                List
-              </button>
+        {/* Main Area */}
+        <div className="ml-64 flex-1">
+          {/* Search Controls Section */}
+          <div className="sticky top-16 z-20 bg-white border-b shadow-sm">
+            <div className="px-8 py-4">
+              <SearchControls 
+                searchQuery={searchQuery} 
+                onSearchChange={setSearchQuery} 
+                onSearch={handleSearch} 
+                viewMode={viewMode} 
+                onViewModeChange={setViewMode}
+                onFilterClick={() => setIsFilterModalOpen(true)}
+                sort={sort}
+                onSortChange={(value: string) => handleFilterChange({ target: { value } } as React.ChangeEvent<HTMLSelectElement>)}
+              />
             </div>
-            <button 
-              className="px-4 py-2 text-sm text-white border-2 border-blue-600 rounded-full" 
-              onClick={() => setIsFilterModalOpen(true)}
-            >
-              Filters
-            </button>
-            <select 
-              value={sort} 
-              onChange={handleFilterChange} 
-              className="px-4 py-2 text-sm border rounded-lg"
-            >
-              <option value="Newest to Oldest">Newest to Oldest</option>
-              <option value="Oldest to Newest">Oldest to Newest</option>
-              <option value="Price Low to High">Price Low to High</option>
-              <option value="Price High to Low">Price High to Low</option>
-            </select>
+          </div>
+
+          {/* Main Content Section */}
+          <div className="min-h-[calc(100vh-64px-72px)] bg-gray-50">
+            <MainContent
+              viewMode={viewMode}
+              isRoleModalOpen={isRoleModalOpen}
+              isMultiStepFormOpen={isMultiStepFormOpen}
+              isFilterModalOpen={isFilterModalOpen}
+              onRoleModalClose={() => setRoleModalOpen(false)}
+              onMultiStepFormClose={() => setMultiStepFormOpen(false)}
+              onFilterModalClose={() => setIsFilterModalOpen(false)}
+            />
           </div>
         </div>
-
-        <PropertiesState>
-          <Routes>
-            <Route path="/" element={<PropertiesListing viewMode={viewMode} />} />
-            <Route path="/fetch-favourites" element={<SavedPropertiesListing />} />
-            <Route path="/my-properties" element={<MyProperties />} />
-            <Route path="/drafts" element={<DraftProperties />} />
-          </Routes>
-        </PropertiesState>
-      </main>
+      </div>
 
       <RoleSelectionModal open={isRoleModalOpen} onClose={() => setRoleModalOpen(false)} />
       {isMultiStepFormOpen && <MultiStepPropertyForm onClose={() => setMultiStepFormOpen(false)} />}

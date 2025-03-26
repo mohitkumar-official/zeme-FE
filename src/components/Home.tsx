@@ -9,6 +9,7 @@ import { AppDispatch } from "../redux/store";
 import Navbar from "./Navbar";
 import SearchControls from "./SearchControls";
 import MainContent from "./MainContent";
+import { Menu } from 'lucide-react';
 
 interface User {
   role: string;
@@ -33,6 +34,7 @@ const Home: React.FC = () => {
   const [sort, setSort] = useState("");
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -46,8 +48,7 @@ const Home: React.FC = () => {
   const handleSearch = (searchTerm: string = "") => {
     const filterRequestBody: FilterRequestBody = searchTerm
     ? { filters: { keyword: searchTerm } }
-    : { filters: {} }; // Always return an object with a filters property
-
+    : { filters: {} };
 
     setLoading(true);
     dispatch(fetchProperties(filterRequestBody))
@@ -61,11 +62,11 @@ const Home: React.FC = () => {
     const selectedFilter = event.target.value;
     setSort(selectedFilter);
 
-    const filterRequestBody: FilterRequestBody = { filters: { sort: selectedFilter } }; // ✅ Always an object
+    const filterRequestBody: FilterRequestBody = { filters: { sort: selectedFilter } };
 
     dispatch(fetchProperties(filterRequestBody));
     dispatch(setFilterss(filterRequestBody));
-};
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -73,6 +74,31 @@ const Home: React.FC = () => {
     window.location.reload();
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const sidebar = document.getElementById('mobile-sidebar');
+      const menuButton = document.getElementById('mobile-menu-button');
+      
+      if (sidebar && menuButton && 
+          !sidebar.contains(event.target as Node) && 
+          !menuButton.contains(event.target as Node)) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    if (isSidebarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSidebarOpen]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,17 +108,39 @@ const Home: React.FC = () => {
         onAddProperty={() => setMultiStepFormOpen(true)}
       />
 
-      <div className="flex">
+      <div className="flex h-[calc(100vh-4rem)] pt-16">
+        {/* Mobile Menu Button */}
+        <button 
+          id="mobile-menu-button"
+          onClick={toggleSidebar}
+          className="md:hidden fixed top-[4.5rem] left-4 z-50 p-2 rounded-md bg-white shadow-md hover:bg-gray-50"
+          aria-label="Toggle menu"
+        >
+          <Menu size={20} />
+        </button>
+
         {/* Sidebar */}
-        <aside className="fixed top-16 left-0 w-64 h-[calc(100vh-64px)] bg-white shadow-lg z-10">
+        <div 
+          id="mobile-sidebar"
+          className={`fixed md:static top-16 left-0 h-[calc(100vh-4rem)] w-48 transform transition-transform duration-300 ease-in-out z-40 
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        >
           <SideBar />
-        </aside>
+        </div>
+
+        {/* Overlay for mobile */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
 
         {/* Main Area */}
-        <div className="ml-64 flex-1">
+        <main className="flex-1 min-h-[calc(100vh-4rem)]">
           {/* Search Controls Section */}
           <div className="sticky top-16 z-20 bg-white border-b shadow-sm">
-            <div className="px-8 py-4">
+            <div className="p-4 md:px-6">
               <SearchControls 
                 searchQuery={searchQuery} 
                 onSearchChange={setSearchQuery} 
@@ -107,7 +155,7 @@ const Home: React.FC = () => {
           </div>
 
           {/* Main Content Section */}
-          <div className="min-h-[calc(100vh-64px-72px)] bg-gray-50">
+          <div className="bg-gray-50">
             <MainContent
               viewMode={viewMode}
               isRoleModalOpen={isRoleModalOpen}
@@ -118,7 +166,7 @@ const Home: React.FC = () => {
               onFilterModalClose={() => setIsFilterModalOpen(false)}
             />
           </div>
-        </div>
+        </main>
       </div>
 
       <RoleSelectionModal open={isRoleModalOpen} onClose={() => setRoleModalOpen(false)} />

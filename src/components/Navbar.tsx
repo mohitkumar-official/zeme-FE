@@ -23,59 +23,84 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onAddProperty }) => {
   const toggleDropdown = () => setIsDropdownOpen((prev) => !prev);
 
   return (
-    <nav className="navbar flex justify-between items-center p-4 shadow-md bg-white">
-      <div className="nav-left flex items-center">
-        <div className="logo flex items-center">
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-white shadow-md z-50">
+      <div className="h-full px-4 md:px-8 mx-auto flex items-center justify-between">
+        <div className="flex items-center">
           <img
             src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=50&h=50&q=80"
             alt="Logo"
-            className="w-10 h-10 rounded-lg"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-lg"
           />
-          <span className="ml-2 font-bold text-lg">zeme</span>
+          <span className="ml-2 font-bold text-lg text-gray-900">zeme</span>
         </div>
-      </div>
 
-      <div className="nav-right flex items-center gap-4">
-        {token ? (
-          <>
-            {(userRole === "agent" || userRole === "landlord") && (
-              <button
-                className="btn btn-add-property px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                onClick={onAddProperty}
-              >
-                Add New Property
-              </button>
-            )}
-
-            <div className="relative" ref={dropdownRef}>
-              <img
-                src={userImage}
-                alt="User"
-                className="w-10 h-10 rounded-full border-2 border-gray-300 cursor-pointer"
-                onClick={toggleDropdown}
-              />
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md border border-gray-200">
-                  <button
-                    className="block w-full text-left px-4 py-2 text-gray-700 bg-white"
-                    onClick={onLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
+        <div className="flex items-center space-x-2 md:space-x-4">
+          {token ? (
+            <>
+              {(userRole === "agent" || userRole === "landlord") && (
+                <button
+                  className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={onAddProperty}
+                >
+                  Add Property
+                </button>
               )}
-            </div>
-          </>
-        ) : (
-          <>
-            <button onClick={() => navigate("/login")} className="btn btn-login px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">
-              Log In
-            </button>
-            <button className="btn btn-register px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onClick={() => navigate("/register")}>
-              Register
-            </button>
-          </>
-        )}
+
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={toggleDropdown}
+                  className="flex items-center space-x-2 focus:outline-none"
+                >
+                  <img
+                    src={userImage}
+                    alt="User"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-gray-200"
+                  />
+                </button>
+                
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1">
+                    {(userRole === "agent" || userRole === "landlord") && (
+                      <button
+                        className="md:hidden w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => {
+                          onAddProperty();
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Add Property
+                      </button>
+                    )}
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => {
+                        onLogout();
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => navigate("/login")} 
+                className="px-3 py-1.5 md:px-4 md:py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Log In
+              </button>
+              <button 
+                onClick={() => navigate("/register")} 
+                className="px-3 py-1.5 md:px-4 md:py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Register
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </nav>
   );

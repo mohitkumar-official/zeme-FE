@@ -29,9 +29,9 @@ const MainContent: React.FC<MainContentProps> = ({
   onFilterModalClose,
 }) => {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-auto pt-4">
-        <div className="px-8 py-12">
+    <div className="min-h-full">
+      <div className="h-full">
+        <div className="px-4 py-6 md:p-8">
           <PropertiesState>
             <Routes>
               <Route path="/" element={<PropertiesListing viewMode={viewMode} />} />

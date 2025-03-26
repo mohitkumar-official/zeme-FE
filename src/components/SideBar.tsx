@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Home, Heart, Building2, FileText } from 'lucide-react';
 
 const SideBar: React.FC = () => {
   const location = useLocation();
@@ -7,53 +8,38 @@ const SideBar: React.FC = () => {
 
   if (!token) return null;
 
+  const menuItems = [
+    { path: '/', label: 'All Properties', icon: Home },
+    { path: '/fetch-favourites', label: 'Saved Properties', icon: Heart },
+    { path: '/my-properties', label: 'My Properties', icon: Building2 },
+    { path: '/drafts', label: 'Draft Properties', icon: FileText },
+  ];
+
   return (
-    <aside className="sidebar w-64 bg-white shadow-md p-4">
-      <nav>
-        <ul className="space-y-2">
-          <li>
-            <Link
-              to="/"
-              className={`block px-4 py-2 rounded-lg ${
-                location.pathname === '/' ? 'bg-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              All Properties
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/fetch-favourites"
-              className={`block px-4 py-2 rounded-lg ${
-                location.pathname === '/fetch-favourites' ? 'bg-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Saved Properties
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/my-properties"
-              className={`block px-4 py-2 rounded-lg ${
-                location.pathname === '/my-properties' ? 'bg-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              My Properties
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/drafts"
-              className={`block px-4 py-2 rounded-lg ${
-                location.pathname === '/drafts' ? 'bg-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Draft Properties
-            </Link>
-          </li>
-        </ul>
-      </nav>
-    </aside>
+    <nav className="h-full bg-white border-r">
+      <ul>
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          
+          return (
+            <li key={item.path} className="py-0.5">
+              <Link
+                to={item.path}
+                className={`flex items-center px-3 py-2 mx-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 };
 

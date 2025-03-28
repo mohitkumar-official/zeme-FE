@@ -74,7 +74,7 @@ const Home: React.FC = () => {
     window.location.reload();
   };
 
-  const toggleSidebar = () => {
+  const toggleSidebar = () => {  //toggle sidebar
     setIsSidebarOpen(!isSidebarOpen);
   };
 
@@ -109,7 +109,7 @@ const Home: React.FC = () => {
       />
 
       <div className="flex h-[calc(100vh-4rem)] pt-16">
-        {/* Mobile Menu Button */}
+        {/* Mobile Menu Button only visible on mobile */}
         <button 
           id="mobile-menu-button"
           onClick={toggleSidebar}
@@ -122,7 +122,7 @@ const Home: React.FC = () => {
         {/* Sidebar */}
         <div 
           id="mobile-sidebar"
-          className={`fixed md:static top-16 left-0 h-[calc(100vh-4rem)] w-48 transform transition-transform duration-300 ease-in-out z-40 
+          className={`fixed md:static top-16 left-0 h-[calc(100vh-4rem)] w-64 transform transition-transform duration-300 ease-in-out z-40 
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
         >
           <SideBar />

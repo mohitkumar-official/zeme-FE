@@ -135,6 +135,7 @@ class PropertiesController {
     static async addToFavourite(req: Request, res: Response): Promise<Response> {
         try {
             const userId = (req as any).user.id;
+            console.log('userId', userId);
             const { propertyId } = req.body;
 
             const user = await User.findById(userId);

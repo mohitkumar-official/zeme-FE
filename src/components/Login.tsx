@@ -1,14 +1,73 @@
-import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import GoogleLoginButton from './GoogleLoginButton';
 
 const Login: React.FC = () => {
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
   });
-  const navigate = useNavigate(); // Modern alternative for history
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const hasProcessedCode = useRef(false);
+
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code && !hasProcessedCode.current) {
+      hasProcessedCode.current = true;
+      handleGoogleCallback(code);
+    }
+  }, [searchParams]);
+
+  const handleGoogleCallback = async (code: string) => {
+    try {
+      const res = await fetch('http://localhost:8000/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+         // Show success message
+         toast.success("Login successful!", {
+          position: "top-right",
+          autoClose: 2000,
+        });
+
+        // Clear the URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Wait a moment for the toast to be visible before redirecting
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      } else {
+        toast.error(data.error || "Google login failed!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Error during Google login:', error);
+      toast.error("Failed to authenticate with Google", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +95,7 @@ const Login: React.FC = () => {
 
         localStorage.setItem("token", json.token);
         localStorage.setItem("user", JSON.stringify(json.user));
-        setTimeout(() => navigate("/"), 2000); // Redirect after delay
+        setTimeout(() => navigate("/"), 2000);
       } else {
         toast.error(json.error || "Invalid credentials!", {
           position: "top-right",
@@ -85,10 +144,10 @@ const Login: React.FC = () => {
               <label className="block text-gray-700">EMAIL</label>
               <input
                 type="email"
-                name="email"  // Add name attribute
+                name="email"
                 className="w-full p-3 border rounded-lg mt-1"
                 placeholder="Enter your email"
-                value={credentials.email} // Bind value
+                value={credentials.email}
                 onChange={handleChange}
               />
             </div>
@@ -96,10 +155,10 @@ const Login: React.FC = () => {
               <label className="block text-gray-700">PASSWORD</label>
               <input
                 type="password"
-                name="password"  // Add name attribute
+                name="password"
                 className="w-full p-3 border rounded-lg mt-1"
                 placeholder="Enter your password"
-                value={credentials.password} // Bind value
+                value={credentials.password}
                 onChange={handleChange}
                 autoComplete="off"
               />
@@ -115,15 +174,12 @@ const Login: React.FC = () => {
             <hr className="flex-grow border-gray-300" />
           </div>
 
-          <button className="w-full flex items-center justify-center border py-2 rounded-lg mb-2 hover:bg-gray-100">
-            <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" className="w-5 h-5 mr-2" /> Sign in with Google
-          </button>
-          <button className="w-full flex items-center justify-center border py-2 rounded-lg hover:bg-gray-100">
-            <img src="https://www.svgrepo.com/show/303151/apple-logo.svg" alt="Apple" className="w-5 h-5 mr-2" /> Sign in with Apple
-          </button>
+          <div className="space-y-3">
+            <GoogleLoginButton />
+          </div>
 
           <p className="text-center mt-4 text-gray-600">
-            Don’t have an account? <a href="/register" className="text-blue-500">Sign Up</a>
+            Don't have an account? <button onClick={() => navigate('/register')} className="text-blue-500">Sign Up</button>
           </p>
         </div>
       </div>

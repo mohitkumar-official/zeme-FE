@@ -7,13 +7,15 @@ interface IUser extends Document {
   lastName: string;
   phone: string;
   email: string;
-  password: string;
+  password?: string;
   companyName?: string;
   companyAddress?: string;
   apartmentUnit?: string;
   licenseNumber?: string;
   bio?: string;
-  role: 'renter' | 'agent' | 'landlord';
+  role: 'renter' | 'agent' | 'landlord' | 'user' | 'admin';
+  googleId?: string;
+  profileImage?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +27,7 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
     firstName: {
       type: String,
       required: [true, "First name is required"],
+      trim: true
     },
     middleName: {
       type: String,
@@ -33,20 +36,28 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
     lastName: {
       type: String,
       required: [true, "Last name is required"],
+      trim: true
     },
     phone: {
       type: String,
-      required: [true, "Phone number is required"],
+      required: function (this: IUser) {
+        return !this.googleId; // Phone is not required for Google Auth users
+      },
       unique: true,
+      sparse: true, // This allows null or undefined values for phone
     },
     email: {
       type: String,
       required: [true, "Email is required"],
       unique: true,
+      trim: true,
+      lowercase: true
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: function (this: IUser) {
+        return !this.googleId; // Password is required only if not using Google auth
+      },
     },
 
     // Business Information
@@ -81,10 +92,20 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['renter', 'agent', 'landlord'],
+        values: ['renter', 'agent', 'landlord', 'user', 'admin'],
         message: '{VALUE} is not a valid user type',
       },
       required: [true, "User type is required"],
+    },
+
+    // Google Authentication
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    profileImage: {
+      type: String
     },
 
     // Timestamps

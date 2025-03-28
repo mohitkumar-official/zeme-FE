@@ -15,6 +15,7 @@ const fetchuser = (req: CustomRequest, res: Response, next: NextFunction): void 
     try {
         const data = jwt.verify(token, "mysecret@key") as jwt.JwtPayload; // Use jwt.JwtPayload to type the decoded data
         req.user = { id: data.id }; // Safely assign the `id` from the decoded token
+        console.log('req.user', req.user);
         next();
     } catch (error) {
          res.status(401).send({ error: "Please authenticate using a valid token" });

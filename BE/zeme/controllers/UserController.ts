@@ -71,19 +71,19 @@ class UserController {
      * @param {Request} req - Express request object.
      * @param {Response} res - Express response object.
      */
-    static async loginUser(req: Request, res: Response): Promise<void> {
+    static async loginUser(req: Request, res: Response): Promise<Response | void> {
         const { email, password } = req.body;
         let success = false;
 
         try {
             const user = await User.findOne({ email });
-            if (!user) {
-                 res.status(401).json({ error: "Invalid credentials" });
+            if (!user || !user.password) {
+                return res.status(401).json({ error: "Invalid credentials" });
             }
 
-            const isMatch = await bcrypt.compare(password, user!.password);
+            const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
-                 res.status(401).json({ error: "Invalid credentials" });
+                return res.status(401).json({ error: "Invalid credentials" });
             }
 
             jwt.sign({ id: user?._id }, JWT_SECRET, (err: any, token: string|undefined|null) => {

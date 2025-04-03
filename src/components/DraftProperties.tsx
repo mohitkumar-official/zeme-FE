@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import MultiStepPropertyForm from './MultiStepForm';
 import { FormData } from '../types/property';
+import { Pencil } from 'lucide-react';
 
 interface Property extends FormData {
     updatedAt: string;
@@ -71,7 +72,7 @@ const DraftProperties: React.FC = () => {
     return (
         <div>
             <h2 className="text-2xl font-semibold mb-4">Draft Properties</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {drafts.map((draft) => (
                     <div key={draft._id} className="border rounded-lg p-4 bg-white shadow-sm">
                         <div className="relative aspect-video mb-4 bg-gray-100 rounded-lg overflow-hidden">
@@ -86,6 +87,13 @@ const DraftProperties: React.FC = () => {
                                     No Image
                                 </div>
                             )}
+                            <button
+                                onClick={() => handleContinueEditing(draft)}
+                                className="absolute top-2 right-2 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600"
+                                title="Continue Editing"
+                            >
+                                <Pencil className="w-4 h-4" />
+                            </button>
                         </div>
                         <div className="space-y-2">
                             <h3 className="font-medium">
@@ -94,14 +102,6 @@ const DraftProperties: React.FC = () => {
                             <p className="text-sm text-gray-500">
                                 Last updated: {new Date(draft.updatedAt).toLocaleDateString()}
                             </p>
-                            <div className="flex gap-2 mt-4">
-                                <button
-                                    onClick={() => handleContinueEditing(draft)}
-                                    className="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
-                                >
-                                    Continue Editing
-                                </button>
-                            </div>
                         </div>
                     </div>
                 ))}

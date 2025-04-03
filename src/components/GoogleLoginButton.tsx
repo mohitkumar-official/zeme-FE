@@ -1,5 +1,4 @@
 
-import { FcGoogle } from "react-icons/fc";
 
 const GoogleLoginButton = () => {
 

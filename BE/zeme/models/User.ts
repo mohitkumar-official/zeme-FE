@@ -43,7 +43,6 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
       required: function (this: IUser) {
         return !this.googleId; // Phone is not required for Google Auth users
       },
-      unique: true,
       sparse: true, // This allows null or undefined values for phone
     },
     email: {

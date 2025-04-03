@@ -58,8 +58,9 @@ class AuthController {
           lastName: payload.family_name || '',
           googleId: payload.sub,
           role: 'user',
-          phone: 'Not provided', // Add a default value for phone
-          password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10) // Generate a random password
+          phone: 'Not provided as', // Add a default value for phone
+          password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Generate a random password
+          profileImage: payload.picture
         });
       }
 
@@ -78,7 +79,8 @@ class AuthController {
           id: user._id,
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
-          role: user.role
+          role: user.role,
+          profileImage: user.profileImage
         }
       });
     } catch (error) {

@@ -2,10 +2,16 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Heart, Building2, FileText } from 'lucide-react';
 
+interface User {
+  role: string;
+  profileImage?: string;
+}
+
 const SideBar: React.FC = () => {
   const location = useLocation();
   const token = localStorage.getItem('token');
-
+  const user: User | null = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null;
+ 
   // Base menu items that are always shown
   const baseMenuItems = [
     { path: '/', label: 'All Properties', icon: Home },
@@ -19,7 +25,9 @@ const SideBar: React.FC = () => {
   ];
 
   // Combine menu items based on authentication status
-  const menuItems = token ? [...baseMenuItems, ...authenticatedMenuItems] : baseMenuItems;
+  const menuItems = token && (user?.role === 'landlord' || user?.role === 'agent')  
+  ? [...baseMenuItems, ...authenticatedMenuItems]  
+  : baseMenuItems;
 
   return (
     <nav className="h-full bg-white border-r">

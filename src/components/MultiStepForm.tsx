@@ -66,7 +66,6 @@ export const MultiStepForm: React.FC<MultiStepPropertyFormProps> = ({ onClose, e
   }, [editMode, propertyData]);
 
   const handleSubmit = async (saveAsDraft: boolean = false) => {
-    console.log(saveAsDraft);
     try {
       setIsSaving(true);
       // If not saving as draft, validate all required fields
@@ -232,22 +231,22 @@ export const MultiStepForm: React.FC<MultiStepPropertyFormProps> = ({ onClose, e
   const modalRef = useRef<HTMLDivElement | null>(null);
 
   const handleNext = () => {
-    if (validateStep()) {
-      if (currentStep === 5) {
-        if (validateAllSteps()) {
-          setShowPreview(true);
+    if (validateStep()) {   // Step 1: Validate the current step
+      if (currentStep === 5) {   // Step 2: Check if the current step is the last one (Step 5)
+        if (validateAllSteps()) {   // Step 3: If it's the last step, validate all steps
+          setShowPreview(true);   // Step 4: If all steps are valid, show a preview
         } else {
-          toast.error('Please complete all required fields before previewing');
+          toast.error('Please complete all required fields before previewing');  // Step 5: If validation fails, show error toast
         }
       } else {
-        setCurrentStep((prev) => Math.min(prev + 1, 5));
+        setCurrentStep((prev) => Math.min(prev + 1, 5));   // Step 6: If it's not the last step, move to the next step (ensure it doesn't go beyond step 5)
       }
     }
   };
 
   const handleBack = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
-    setErrors({});
+    setCurrentStep((prev) => Math.max(prev - 1, 1));   // Step 1: Decrease the step (but not below Step 1)
+    setErrors({});  // Step 2: Clear any errors (likely reset form validation errors)
   };
 
   return (

@@ -22,7 +22,7 @@ interface PropertiesState {
 }
 
 // Initial state
-const initialState: PropertiesState = {
+const initialState: PropertiesState = { //initialState is used to define the default values for the Redux state when the slice is first created
     properties: [],
     loading: false,
     error: null,
@@ -33,9 +33,9 @@ const initialState: PropertiesState = {
 };
 
 // 🔹 Async Thunks for API Calls
-export const fetchProperties = createAsyncThunk<Property[], FilterRequestBody>(
+export const fetchProperties = createAsyncThunk<Property[], FilterRequestBody>( //async thunk for using api
     "properties/fetchProperties",
-    async ({ filters}, { rejectWithValue }) => { 
+    async ({ filters}, { rejectWithValue }) => {  //rejectWithValue is used to handle errors
         try {
             const response = await fetch(`http://localhost:8000/api/property/fetch-properties`, {
                 method: 'POST',
@@ -109,7 +109,7 @@ export const addToFavorites = createAsyncThunk<any, string>(
 // 🔹 Slice
 const propertiesSlice = createSlice({
     name: "properties",
-    initialState,
+    initialState, // // Here, the `initialState` is used to set up the default state
     reducers: {
         setFilterss: (state, action: PayloadAction<FilterRequestBody>) => {
             state.filters = action.payload || { filters: {} };

@@ -11,7 +11,7 @@ interface Property {
 }
 
 interface PropertiesStateProps {
-    children: ReactNode;
+    children: ReactNode;  // accept any valid react content
 }
 
 interface FetchFilters {
@@ -161,7 +161,7 @@ const PropertiesState: React.FC<PropertiesStateProps> = ({ children }) => {
                     'Content-Type': 'application/json',
                     'auth-token': localStorage.getItem('token') || ''
                 },
-                body: JSON.stringify(propertyData)
+                body: JSON.stringify(propertyData) //convert a js value to js object notation
             });
 
             if (!response.ok) {
@@ -176,8 +176,9 @@ const PropertiesState: React.FC<PropertiesStateProps> = ({ children }) => {
     };
 
     return (
+        // children is a special prop that allows components to wrap other components or elements inside them.
         <PropertiesContext.Provider value={{ properties, fetchProperties, setProperties, fetchFavourites, addToFavorites, fetchMyProperties, addProperty, loading, error, filters, setFilters }}>
-            {children}
+            {children} 
         </PropertiesContext.Provider>
     );
 };

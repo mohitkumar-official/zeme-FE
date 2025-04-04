@@ -72,7 +72,6 @@ const MyProperties: React.FC = () => {
 
     const handleEdit = (propertyId: string) => {
         const property = properties.find(p => p._id === propertyId);
-        console.log(property);
         if (property) {
             setEditingProperty(property);
         }

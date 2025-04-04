@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit'; //simplifies the store setup
 import propertiesReducer from '../features/properties/PropertiesSlice';
 
 export const store = configureStore({

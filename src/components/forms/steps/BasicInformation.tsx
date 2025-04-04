@@ -104,7 +104,7 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
   const handleAddressSelect = (suggestion: AddressSuggestion) => {
     const [lng, lat] = suggestion.center;
     
-    if (isNaN(lat) || isNaN(lng)) {
+    if (isNaN(lat) || isNaN(lng)) { //nan means not a number
       console.error('Invalid coordinates received:', { lat, lng });
       toast.error('Invalid coordinates received from Mapbox');
       return;
@@ -128,7 +128,6 @@ export function BasicInformation({ formData, setFormData, errors }: BasicInforma
           }
         }
       };
-      console.log('Updated form data with coordinates:', newFormData.basic_information.coordinates);
       return newFormData;
     });
     

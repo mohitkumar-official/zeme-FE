@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import RoleSelectionModal from './RoleSelectionModal';
 
 interface User {
   role: string;
@@ -15,10 +16,12 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onAddProperty }) => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const token = localStorage.getItem("token");
   const userRole = user?.role ?? null;
   const userImage = user?.profileImage ?? "https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png";
+
 
   const toggleDropdown = () => setIsDropdownOpen((prev) => !prev);
 
@@ -36,7 +39,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onAddProperty }) => {
 
         <div className="flex items-center space-x-2 md:space-x-4">
           {token ? (
-            <>
+            <> 
               {(userRole === "agent" || userRole === "landlord") && (
                 <button
                   className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -60,7 +63,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onAddProperty }) => {
                 
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1">
-                    {(userRole === "agent" || userRole === "landlord") && (
+                    {/* {(userRole === "agent" || userRole === "landlord") && (
                       <button
                         className="md:hidden w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => {
@@ -70,7 +73,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onAddProperty }) => {
                       >
                         Add Property
                       </button>
-                    )}
+                    )} */}
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => {
@@ -93,12 +96,14 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onAddProperty }) => {
                 Log In
               </button>
               <button 
-                onClick={() => navigate("/register")} 
+                 onClick={() => setIsModalOpen(true)}  // Open the modal when Register button is clicked
                 className="px-3 py-1.5 md:px-4 md:py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Register
               </button>
+              <RoleSelectionModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
             </>
+
           )}
         </div>
       </div>
